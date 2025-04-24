@@ -5,6 +5,7 @@ import random
 from torch import nn
 from copy import deepcopy
 
+
 def run_N_episodes(env, agent, N_episodes=1, display=False):
     reward_per_episode = []
     step_per_episode = []
@@ -61,6 +62,27 @@ def test(agent, env, n_episodes=100, display=False):
     return env
 
 
+def test_with_reinforce_agent(
+    agent, env, n_episodes=100, display=False
+):  # Test the policy learned by the agent
+    env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
+    for episode in range(n_episodes):
+        obs, info = env.reset()
+        done = False
+
+        while not done:
+            action = agent.get_action(obs)
+            next_obs, reward, terminated, truncated, info = env.step(action)
+            if display:
+                env.render()
+            done = terminated or truncated
+            obs = next_obs
+        if display:
+            plt.pause(0.5)
+
+    return env
+
+
 def test_sb3(model, env, n_episodes=100, display=False):
     env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
     for episode in range(n_episodes):
@@ -80,19 +102,25 @@ def test_sb3(model, env, n_episodes=100, display=False):
 def plot_test_stats(env, agent, plot=False):
     returns = np.array(env.return_queue).flatten()
     N_ep = len(returns)
-    print('Mean return over n={} episodes : {} +/- {}'.format(N_ep,
-          np.mean(returns), np.std(returns)/np.sqrt(N_ep)))
+    print(
+        "Mean return over n={} episodes : {} +/- {}".format(
+            N_ep, np.mean(returns), np.std(returns) / np.sqrt(N_ep)
+        )
+    )
     ep_lengths = np.array(env.length_queue).flatten()
-    print('Mean episode length over n={} episodes : {}'.format(
-        N_ep, np.mean(ep_lengths), np.std(ep_lengths)/np.sqrt(N_ep)))
+    print(
+        "Mean episode length over n={} episodes : {}".format(
+            N_ep, np.mean(ep_lengths), np.std(ep_lengths) / np.sqrt(N_ep)
+        )
+    )
 
     if plot:
         fig, axs = plt.subplots(ncols=2, figsize=(12, 5))
         axs[0].set_title("Episode rewards")
         axs[0].set_xlabel("Episode rewards")
         axs[0].set_ylabel("Frequency")
-        axs[0].axvline(x=np.mean(returns), linestyle='--', alpha=0.5)
-        axs[0].legend(['Mean reward'])
+        axs[0].axvline(x=np.mean(returns), linestyle="--", alpha=0.5)
+        axs[0].legend(["Mean reward"])
         axs[0].hist(returns)
 
         axs[1].set_title("Episode lengths")
@@ -100,7 +128,7 @@ def plot_test_stats(env, agent, plot=False):
         axs[1].set_ylabel("Frequency")
         axs[1].hist(ep_lengths)
         axs[1].axvline(x=np.mean(ep_lengths))
-        axs[1].legend(['Mean episode length'])
+        axs[1].legend(["Mean episode length"])
 
         plt.tight_layout()
         plt.show()
@@ -145,79 +173,87 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.memory)
 
+
 # create instance of replay buffer
-#replay_buffer = ReplayBuffer(1000)
+# replay_buffer = ReplayBuffer(1000)
 
 
 class Net(nn.Module):
     """
     Basic neural net.
     """
+
     def __init__(self, obs_size, hidden_size, n_actions):
         super(Net, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(obs_size, hidden_size),
             nn.ReLU(),
-            nn.Linear(hidden_size, n_actions)
+            nn.Linear(hidden_size, n_actions),
         )
 
     def forward(self, x):
         return self.net(x)
-    
+
 
 def eval_agent(agent, env, n_sim=5, display=False):
-        """        
-        Monte Carlo evaluation of DQN agent.
+    """
+    Monte Carlo evaluation of DQN agent.
 
-        Repeat n_sim times:
-            * Run the DQN policy until the environment reaches a terminal state (= one episode)
-            * Compute the sum of rewards in this episode
-            * Store the sum of rewards in the episode_rewards array.
-        """
-        env_copy = deepcopy(env)
-        episode_rewards = np.zeros(n_sim)
-        episode_steps = np.zeros(n_sim)
-        episode_collision_rewards = np.zeros(n_sim)
-        episode_right_lane_rewards = np.zeros(n_sim)
-        episode_high_speed_rewards = np.zeros(n_sim)
-        for i in range(n_sim):
-            state, _ = env_copy.reset()
-            reward_sum = 0
-            N_steps = 0
-            collision_reward = 0
-            right_lane_reward = 0
-            high_speed_reward = 0
-            done = False
-            while not done: 
-                action = agent.get_action(state, 0)
-                state, reward, terminated, truncated, info = env_copy.step(action)
-               
-                rewards = info["rewards"]
-                collision_reward += rewards["collision_reward"]
-                right_lane_reward += rewards["right_lane_reward"]
-                high_speed_reward += rewards["high_speed_reward"]
-                
-                reward_sum += reward
-                N_steps += 1
-                done = terminated or truncated
-                
-                # Display the environment
-                if display:
-                    env_copy.render()
-                    
-            episode_rewards[i] = reward_sum
-            episode_steps[i] = N_steps
-            episode_collision_rewards[i] = collision_reward
-            episode_right_lane_rewards[i] = right_lane_reward
-            episode_high_speed_rewards[i] = high_speed_reward
-            
-            # Pause at the end of the episode to visualize the ending state
+    Repeat n_sim times:
+        * Run the DQN policy until the environment reaches a terminal state (= one episode)
+        * Compute the sum of rewards in this episode
+        * Store the sum of rewards in the episode_rewards array.
+    """
+    env_copy = deepcopy(env)
+    episode_rewards = np.zeros(n_sim)
+    episode_steps = np.zeros(n_sim)
+    episode_collision_rewards = np.zeros(n_sim)
+    episode_right_lane_rewards = np.zeros(n_sim)
+    episode_high_speed_rewards = np.zeros(n_sim)
+    for i in range(n_sim):
+        state, _ = env_copy.reset()
+        reward_sum = 0
+        N_steps = 0
+        collision_reward = 0
+        right_lane_reward = 0
+        high_speed_reward = 0
+        done = False
+        while not done:
+            action = agent.get_action(state, 0)
+            state, reward, terminated, truncated, info = env_copy.step(action)
+
+            rewards = info["rewards"]
+            collision_reward += rewards["collision_reward"]
+            right_lane_reward += rewards["right_lane_reward"]
+            high_speed_reward += rewards["high_speed_reward"]
+
+            reward_sum += reward
+            N_steps += 1
+            done = terminated or truncated
+
+            # Display the environment
             if display:
-                plt.pause(1)  # Pause for 1 seconds
-                
-        return episode_rewards , episode_steps, episode_collision_rewards, episode_right_lane_rewards, episode_high_speed_rewards
-    
-    
+                env_copy.render()
+
+        episode_rewards[i] = reward_sum
+        episode_steps[i] = N_steps
+        episode_collision_rewards[i] = collision_reward
+        episode_right_lane_rewards[i] = right_lane_reward
+        episode_high_speed_rewards[i] = high_speed_reward
+
+        # Pause at the end of the episode to visualize the ending state
+        if display:
+            plt.pause(1)  # Pause for 1 seconds
+
+    return (
+        episode_rewards,
+        episode_steps,
+        episode_collision_rewards,
+        episode_right_lane_rewards,
+        episode_high_speed_rewards,
+    )
+
+
 def train_dqn(env, agent, N_episodes, eval_every=10, reward_threshold=300):
     total_time = 0
     state, _ = env.reset()
@@ -225,14 +261,14 @@ def train_dqn(env, agent, N_episodes, eval_every=10, reward_threshold=300):
     reward_per_episode = []
     step_per_episode = []
     eps_decrease = []
-    
+
     for ep in range(N_episodes):
         done = False
         state, _ = env.reset()
         tot_reward = 0
         N_step = 0
         episode_losses = []
-        while not done: 
+        while not done:
             action = agent.get_action(state)
 
             next_state, reward, terminated, truncated, _ = env.step(action)
@@ -247,14 +283,21 @@ def train_dqn(env, agent, N_episodes, eval_every=10, reward_threshold=300):
             done = terminated or truncated
             total_time += 1
 
-        if ((ep+1)% eval_every == 0):
+        if (ep + 1) % eval_every == 0:
             rewards, episode_steps, _, _, _ = eval_agent(agent, env)
-            print("episode =", ep+1, ", reward = ", np.mean(rewards), ", episode length = ", np.mean(episode_steps))
+            print(
+                "episode =",
+                ep + 1,
+                ", reward = ",
+                np.mean(rewards),
+                ", episode length = ",
+                np.mean(episode_steps),
+            )
             if np.mean(rewards) >= reward_threshold:
                 break
-        
+
         losses.append(episode_losses)
         reward_per_episode.append(tot_reward)
         step_per_episode.append(N_step)
-                
+
     return losses, reward_per_episode, step_per_episode, eps_decrease
