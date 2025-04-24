@@ -1,0 +1,14 @@
+{
+    "N_episodes": 3000,
+    "gamma": 0.8,
+    "batch_size": 32,
+    "buffer_capacity": 15000,
+    "update_target_every": 50,
+    "epsilon_start": 0.9,
+    "decrease_epsilon_factor": 1000,
+    "epsilon_min": 0.05,
+    "learning_rate": 0.0005,
+    "high_speed_reward": 0.1,
+    "collision_reward": -1,
+    "right_lane_reward": 0.5
+}
